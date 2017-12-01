@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style type="text/css" media="screen">
+  body { background:#FFF; margin:0 }
+  svg {
+    display:block; border:1px solid #ccc; position:absolute;
+    top:0%; left:0%; width:100%; height:100%;
+  }
+  p { margin-left: 2% }
+  #queue {
+  height: 200px;
+  float: left;
+  width: 130px;
+  }
+  #final {
+  height: 200px;
+  float: left;
+  width: 200px;
+}
+.face { stroke:#000; stroke-width:20px; stroke-linecap:round }
+</style>
+<p id="step">
+  Select node to begin Dijkstra's
+</p>
+<p id="queue">
+  Priority Queue: Empty!
+</p>
+<p id="final">
+  Final Distances: Empty!
+</p>
+
+<svg width="100" height="50"></svg>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+var nodes = [
+  {id: "A", dist: 0, marked: 0, prev: ''},
+  {id: "B", dist: 0, marked: 0, prev: ''},
+  {id: "C", dist: 0, marked: 0, prev: ''},
+  {id: "D", dist: 0, marked: 0, prev: ''},
+  {id: "E", dist: 0, marked: 0, prev: ''},
+  {id: "F", dist: 0, marked: 0, prev: ''},
+  {id: "G", dist: 0, marked: 0, prev: ''},
+]
+
+var links = [
+  {source: "A", target: "B", dist: 1, changed: false, state: 0},
+  {source: "C", target: "B", dist: 2, changed: false, state: 0},
+  {source: "C", target: "D", dist: 2, changed: false, state: 0},
+  {source: "C", target: "E", dist: 3, changed: false, state: 0},
+  {source: "D", target: "F", dist: 1, changed: false, state: 0},
+  {source: "A", target: "G", dist: 4, changed: false, state: 0},
+  {source: "D", target: "G", dist: 1, changed: false, state: 0},
+  {source: "C", target: "A", dist: 2, changed: false, state: 0},
+  {source: "E", target: "D", dist: 1, changed: false, state: 0},
+]
+
+var priorityq = []
+var finalq = []
+var counter = 0
+var width = window.innerWidth
+var height = window.innerHeight
+
+var svg = d3.select('svg')
+svg.attr('width', width).attr('height', height)
+
+// simulation setup with all forces
+var linkForce = d3
+  .forceLink()
+  .id(function (link) { return link.id })
+  .distance(function (link) { return link.dist * 100 })
+  .strength(0.3)
+
+var simulation = d3
+  .forceSimulation()
+  .force('link', linkForce)
+  .force('charge', d3.forceManyBody().strength(-120))
+  .force('center', d3.forceCenter(width / 2, height / 2))
+
+var backgroundLinks = svg.append("g")
+  .attr("class", "links")
+  .selectAll("line")
+  .data(links)
+  .enter().append("line")
+    .attr("stroke-width", 1)
+	  .attr("stroke", "rgba(50, 50, 50, 0.1)")
+
+var linkElements = svg.append("g")
+  .attr("class", "links")
+  .selectAll("line")
+  .data(links)
+  .enter().append("line")
+    .attr("stroke-width", 1)
+    .attr("stroke", "rgba(50, 50, 50, 0.1)")
+
+var nodeElements = svg.append("g")
+  .attr("class", "nodes")
+  .selectAll("circle")
+  .data(nodes)
+  .enter().append("circle")
+    .attr("r", 10)
+    .attr("fill", '#333333')
+    .on('click', selectNode)
+    // .call(d3.drag()
+    //       .on("start", dragstarted)
+    //       .on("drag", dragged)
+    //       .on("end", dragended))
+
+// function dragstarted(d) {
+//   if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+//   d.fx = d.x;
+//   d.fy = d.y;
+// }
+//
+// function dragged(d) {
+//   d.fx = d3.event.x;
+//   d.fy = d3.event.y;
+// }
+//
+// function dragended(d) {
+//   if (!d3.event.active) simulation.alphaTarget(0);
+//   d.fx = null;
+//   d.fy = null;
+// }
+
+var textElements = svg.append("g")
+  .attr("class", "texts")
+  .selectAll("text")
+  .data(nodes)
+  .enter().append("text")
+    .text(function (node) { return  node.id + ', ' + node.dist })
+	  .attr("font-size", 15)
+	  .attr("dx", 15)
+    .attr("dy", 4)
+
+var linkText = svg.append("g")
+  .attr("class", "text")
+  .selectAll("text")
+  .data(links)
+  .enter().append("text")
+    .text(function (link) { return  link.dist })
+	  .attr("font-size", 15)
+	  .attr("dx", 0)
+    .attr("dy", 0)
+
+simulation.nodes(nodes).on('tick', () => {
+  nodeElements
+    .attr('cx', function (node) { return node.x })
+    .attr('cy', function (node) { return node.y })
+  textElements
+    .attr('x', function (node) { return node.x })
+    .attr('y', function (node) { return node.y })
+  linkText
+    .attr('x', function (link) { return (link.source.x + link.target.x)/2 })
+    .attr('y', function (link) { return (link.source.y + link.target.y)/2 })
+  backgroundLinks
+    .attr('x1', function (link) { return link.source.x })
+    .attr('y1', function (link) { return link.source.y })
+    .attr('x2', function (link) { return link.target.x })
+    .attr('y2', function (link) { return link.target.y })
+    linkElements
+    .attr('x1', function (link) { return link.source.x })
+    .attr('y1', function (link) { return link.source.y })
+    .attr('x2', function (link) { return link.target.x })
+    .attr('y2', function (link) { return link.target.y })
+})
+
+simulation.force("link").links(links)
+
+function getNeighbors(node) {
+  return links.reduce(function (neighbors, link) {
+      if (link.target.id === node.id) {
+        neighbors.push(link.source.id)
+      } else if (link.source.id === node.id) {
+        neighbors.push(link.target.id)
+      }
+      return neighbors
+    },
+    [node.id]
+  )
+}
+
+function addNeighborstoq(node) {
+  return links.forEach(function (link){
+    if (link.target.id === node.id && link.source.marked == 0){
+      link.source.prev = currentNode.id
+      priorityq.push(link.source)
+    }
+    else if (link.source.id == node.id && link.target.marked == 0 ){
+      link.target.prev = currentNode.id
+      priorityq.push(link.target)
+    }
+  })
+}
+
+function isNeighborLink(node, link) {
+  return link.target.id === node.id || link.source.id === node.id
+}
+
+function getNodeColor(node) {
+  if (node.marked == 1) return 'gold' //neighbor
+  if (node.marked == 2) return 'green' //added
+  if (node.marked == 3) return 'lime' //current
+  if (node.marked == 4) return 'limegreen' //first
+  return 'black'
+}
+
+function getBackgroundColor(link) {
+  if (link.state == 1) return "rgba(50, 50, 50, 0.4)"
+  else if (link.state == 2) return "red"
+  else return "rgba(50, 50, 50, 0.1)"
+}
+
+function getLinkColor(link) {
+  if (link.state == 1) return "rgba(50, 50, 50, 0.4)"
+  else if (link.state == 2) return "red"
+  else return "rgba(50, 50, 50, 0.1)"
+}
+
+let currentNode, lastNode
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowRight') {
+    if (counter%2 == 0) nextStep()
+    else nextStep2()
+  } else if (event.key === 'ArrowDown') {
+    nextStep2()
+  }
+  counter++
+}, false);
+
+function selectNode(selectedNode) { //initiate dijkstra's
+  currentNode = selectedNode
+  nodes.forEach(function(node) { node.dist = Infinity; node.marked = 0, node.prev = '' })
+  links.forEach(function(link) { link.changed = false; link.state = 0 })
+  selectedNode.dist = 0
+  selectedNode.marked = 1
+  counter = 0
+  priorityq = []
+  finalq = []
+  linkElements.attr('stroke', "rgba(50, 50, 50, 0.1)")
+  priorityq.push(selectedNode)
+  backgroundLinks.attr('stroke', function (node) { return getBackgroundColor(node) })
+  nodeElements.attr('fill', function (node) { return getNodeColor(node) })
+  document.getElementById("step").innerHTML = "Set selected node distance to 0 and the rest to infinity, add first node to queue"
+  document.getElementById("queue").innerHTML = "Priority Queue:<br />" + priorityq.reduce((acc, cur, i, arr) => acc + cur.id + " - " + cur.dist + "\n", "")
+  document.getElementById("final").innerHTML = "Final Distances: Empty!"
+  textElements.text(function (node) {
+    distance = node.dist
+    if (node.dist == Infinity) distance = '∞'
+    return  node.id + ', ' + distance
+  })
+}
+
+function nextStep() {
+  if(priorityq.length == 0){
+    currentNode.marked = 2
+    nodeElements.attr('fill', function (node) { return getNodeColor(node) })
+    document.getElementById("step").innerHTML = "Nothing Left in Queue. Done!"
+    return
+  }
+  lastNode = currentNode
+  currentNode = priorityq.splice(0, 1)[0]
+  finalq.push(currentNode)
+  if(counter == 0){
+    document.getElementById("queue").innerHTML = "Priority Queue:<br />" + priorityq.reduce((acc, cur, i, arr) => acc + cur.id + " - " + cur.dist + "<br />", "")
+    document.getElementById("final").innerHTML = "Final Distances:<br />" + finalq.reduce((acc, cur, i, arr) => acc + cur.id + " - " + cur.dist + "<br />", "")
+    currentNode.marked = 3
+    nodeElements.attr('fill', function (node) { return getNodeColor(node) })
+  }
+  linkElements.each( animLink2 );
+  addNeighborstoq(currentNode)
+  document.getElementById("step").innerHTML = "pop first node from priority queue and estabish as shortest path"
+}
+
+function nextStep2() {
+  changedany = false
+  links.forEach(function(link) { //see neighbors
+    if(isNeighborLink(currentNode, link)){
+      if(link.source.id != currentNode.id && currentNode.dist + link.dist < link.source.dist){
+        link.changed = true
+        changedany = true
+        link.source.dist = currentNode.dist + link.dist
+        link.source.prev = link.target.id
+      } else if (currentNode.dist + link.dist < link.target.dist) {
+        link.changed = true
+        changedany = true
+        link.target.dist = currentNode.dist + link.dist
+        link.target.prev = link.source.id
+      }
+    }
+  })
+  priorityq.sort((a, b) => {if(a.dist < b.dist) return -1
+                    if(a.dist > b.dist) return 1
+                    return 0})
+  document.getElementById("step").innerHTML = "update neighbors and add new neighbors to queue"
+  if(!changedany) document.getElementById("step").innerHTML = "No new neighbors"
+  linkElements.each( animLink );
+}
+
+function animLink2( d ) {
+  if(d.source.id == currentNode.id && d.target.id == currentNode.prev){
+    d.target = d.source
+    d.source = currentNode.prev
+  }
+  if(d.source.id == currentNode.prev && d.target.id == currentNode.id){
+    d3.select(this)
+    .transition()
+    .delay(0)
+    .duration(1000)
+    .ease( d3.easeLinear )
+    .attr("stroke", "red")
+    .attrTween( "stroke-dasharray", tweenDash)
+    .on( "end", () => {currentNode.marked = 3
+                      if(counter == 3) lastNode.marked = 4
+                      else lastNode.marked = 2
+                      d.state = 2
+                      nodeElements.attr('fill', function (node) { return getNodeColor(node) })
+                      backgroundLinks.attr('stroke', function(link) { return getBackgroundColor(link)})
+                      document.getElementById("queue").innerHTML = "Priority Queue:<br />" + priorityq.reduce((acc, cur, i, arr) => { if (cur.dist != Infinity) return acc + cur.id + " - " + cur.dist + "<br />"
+                                                                                                                             else return acc }, "")
+                      document.getElementById("final").innerHTML = "Final Distances:<br />" + finalq.reduce((acc, cur, i, arr) => acc + cur.id + " - " + cur.dist + "<br />", "")});
+  }
+}
+
+function animLink( d ) {
+  if(d.target === currentNode){
+    d.target = d.source
+    d.source = currentNode
+    x1 = d3.select(this).attr("x1")
+    x2 = d3.select(this).attr("x2")
+    y1 = d3.select(this).attr("y1")
+    y2 = d3.select(this).attr("y2")
+    x1 = d3.select(this)
+    .attr("x1", x2)
+    .attr("x2", x1)
+    .attr("y1", y2)
+    .attr("y2", y1)
+  }
+  if(d.source.id == currentNode.id && d.changed){
+    oldIn = getOldLink(d.target.id)
+    if(oldIn != -1){
+      links[oldIn].state = 0
+    }
+    d.changed = false
+    d3.select(this)
+    .transition()
+    .delay(0)
+    .duration(1000)
+    .ease( d3.easeLinear )
+    .attr("stroke", "rgba(50, 50, 50, 0.4)")
+    .attrTween( "stroke-dasharray", tweenDash)
+    .on( "end", () => {d.target.marked = 1
+                      d.state = 1
+                       nodeElements.attr('fill', function (node) { return getNodeColor(node) })
+                       backgroundLinks.attr('stroke', function(link) { return getBackgroundColor(link)})
+                       linkElements.attr('stroke', function(link) { return getLinkColor(link)})
+                       textElements.text(function (node) {
+                         distance = node.dist
+                         if (node.dist == Infinity) distance = '∞'
+                         return  node.id + ', ' + distance
+                       })
+                       document.getElementById("queue").innerHTML = "Queue:<br />" + priorityq.reduce((acc, cur, i, arr) => { if (cur.dist != Infinity) return acc + cur.id + " - " + cur.dist + "<br />"
+                                                                                                                              else return acc }, "")
+});
+  }
+}
+
+function getOldLink(id){
+  for(var i = 0; i < links.length; i++){
+    if (links[i].target.id == id) return i
+  }
+  return -1
+}
+
+function tweenDash() {
+  var l = this.getTotalLength(),
+  i = d3.interpolateString("0," + l, l + "," + l);
+  return function(t) { return i(t); };
+}
+
+</script>
